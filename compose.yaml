@@ -1,0 +1,54 @@
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    networks:
+      - hessenwiki
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+      - ./landing_page:/home/hessenwiki/landing_page
+  postgresql:
+    image: postgres:17
+    restart: unless-stopped
+    shm_size: 128mb
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: hessenwiki
+      POSTGRES_DB: confluence
+    volumes:
+      - ./hessenwiki/postgres:/var/lib/postgresql/data
+    networks:
+      - hessenwiki
+  confluence:
+    image: atlassian/confluence:9
+    restart: unless-stopped
+    networks:
+      - hessenwiki
+    environment:
+      - JVM_MINIMUM_MEMORY=1G
+      - JVM_MAXIMUM_MEMORY=6G
+      - ATL_PROXY_NAME=hessenwiki.de
+      - ATL_PROXY_PORT=443
+      - ATL_TOMCAT_CONTEXTPATH=/confluence
+      - ATL_TOMCAT_SCHEME=https
+      - ATL_TOMCAT_SECURE=true
+      - SET_PERMISSIONS=false
+      - CATALINA_OPTS=-Dmacro.required.velocity.context.keys=userAccessor,permissionHelper,req ${CATALINA_OPTS}
+    volumes:
+      - ./hessenwiki/confluence:/var/atlassian/application-data/confluence
+      - ./hessenwiki/confluence_server.xml:/opt/atlassian/confluence/conf/server.xml
+    depends_on:
+      - postgresql
+      - caddy
+volumes:
+  caddy_data:
+  caddy_config:
+  landing_page:
+networks:
+  hessenwiki:

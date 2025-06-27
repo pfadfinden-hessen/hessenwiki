@@ -1,0 +1,19 @@
+# Reload Caddy with `docker compose exec -w /etc/caddy caddy caddy reload`
+www.hessenwiki.de, hessenwiki.de {
+	root * /home/hessenwiki/landing_page
+	file_server
+
+	rewrite /confluence /confluence/
+	handle /confluence/* {
+		reverse_proxy confluence:8090
+	}
+
+	handle /status {
+		redir https://status.malteteichert.de/status/hessenwiki
+	}
+
+	rewrite /wiki /wiki/
+	handle /wiki/* {
+		reverse_proxy confluence:8090
+	}
+}
